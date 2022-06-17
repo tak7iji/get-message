@@ -13,16 +13,27 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "get-message" is now active!');
 
-	vscode.languages.registerHoverProvider('javascript', {
+	vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
 			const word = document.getText(range);
 			
-
 			if (typeof range !== 'undefined') {
-				const propertyFile = path.dirname(document.fileName)+path.sep+'sample.properties';
-				const contents = fs.readFileSync(propertyFile);
-				const lines = contents.toString().split('\n');
+				var contents:Buffer;
+				var lines:string[] = [];
+				var propertyFile = path.dirname(document.fileName)+path.sep+'LocalStrings_ja.properties';
+				try {
+					contents = fs.readFileSync(propertyFile);
+					lines = contents.toString().split('\n');
+				} catch(err) {}
+
+
+				propertyFile = path.dirname(document.fileName)+path.sep+'LocalStrings.properties';
+				try {
+					contents = fs.readFileSync(propertyFile);
+					lines.concat(contents.toString().split('\n'));
+				} catch(err) {}
+
 				const regExp = new RegExp(`${word.slice(1,-1)}=(.*)`);
 				var message:string = "";
 
