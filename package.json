@@ -1,5 +1,6 @@
 {
-  "name": "view-tc-log-message",
+	"publisher": "tak7iji",
+    "name": "view-tc-log-message",
 	"displayName": "view-tc-log-message",
 	"description": "View Tomcat Log Message",
 	"version": "0.0.1",

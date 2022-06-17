@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "view-tc-log-message" is now active!');
 
-	vscode.languages.registerHoverProvider('java', {
+	const disposable = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
 			const word = document.getText(range);
@@ -48,6 +48,8 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 	});
+
+	context.subscriptions.push(disposable);
 }
 
 // this method is called when your extension is deactivated
