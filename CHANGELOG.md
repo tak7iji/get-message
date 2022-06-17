@@ -1,6 +1,6 @@
 # Change Log
 
-All notable changes to the "get-message" extension will be documented in this file.
+All notable changes to the "view-tc-log-message" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 

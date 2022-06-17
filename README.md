@@ -1,6 +1,6 @@
-# get-message README
+# view-tc-log-message README
 
-This is the README for your extension "get-message". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "view-tc-log-message". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 
