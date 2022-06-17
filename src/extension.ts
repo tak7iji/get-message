@@ -1,5 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+import fs = require('fs');
+import readline = require('readline');
+import path = require('path');
 import * as vscode from 'vscode';
 
 // this method is called when your extension is activated
@@ -12,20 +15,25 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.languages.registerHoverProvider('javascript', {
 		provideHover(document, position, token) {
-			const range = document.getWordRangeAtPosition(position);
+			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
 			const word = document.getText(range);
+			
 
-			console.log(document);
-			console.log(position);
-			console.log(token);
-			console.log(range);
-			console.log(word);
+			if (typeof range !== 'undefined') {
+				const propertyFile = path.dirname(document.fileName)+path.sep+'sample.properties';
+				const contents = fs.readFileSync(propertyFile);
+				const lines = contents.toString().split('\n');
+				const regExp = new RegExp(`${word.slice(1,-1)}=(.*)`);
+				var message:string = "";
 
-			if (word === "HELLO") {
-				return new vscode.Hover({
-					language: "Hello language",
-					value: "Hello Value"
-				});
+				for (var i in lines) {
+					const result = lines[i].match(regExp);
+					if (result !== null) {
+						message = result.at(1)!;
+						break;
+					}
+				};
+				return new vscode.Hover(message);
 			}
 		}
 	});
