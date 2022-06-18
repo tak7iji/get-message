@@ -34,15 +34,12 @@ export function activate(context: vscode.ExtensionContext) {
 						lines.concat(contents.toString().split('\n'));
 					} catch(err) {}
 	
-					const regExp = new RegExp(`${word.slice(1,-1)}=(.*)`);
-					var message:string = "";
-	
-					for (var i in lines) {
-						const result = lines[i].match(regExp);
-						if (result !== null) {
-							resolve(new vscode.Hover(result.at(1)!));
+					const key:string = word.slice(1, -1);
+					lines.forEach((line) => {
+						if (line.startsWith(key)) {
+							resolve(new vscode.Hover(line.slice(key.length+1)));
 						}
-					};	
+					});
 				});
 			}
 			return;
