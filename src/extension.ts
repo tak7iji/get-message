@@ -15,31 +15,40 @@ export function activate(context: vscode.ExtensionContext) {
 	var disposable = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
-			
+			const config = vscode.workspace.getConfiguration('conf.viewTcLogMessage');
+			const locale = config.get<string>('locale');
+
 			if (typeof range !== 'undefined') {
 				return new Promise((resolve) => {
-					const word = document.getText(range);
+					const key:string = document.getText(range).slice(1, -1);
 					var contents:Buffer;
-					var lines:string[] = [];
-					var propertyFile = path.dirname(document.fileName)+path.sep+'LocalStrings_ja.properties';
-					try {
-						contents = fs.readFileSync(propertyFile);
-						lines = contents.toString().split('\n');
-					} catch(err) {}
-	
-	
+					let lines:string[] = [];
+					var message:string[] = [];
+
 					propertyFile = path.dirname(document.fileName)+path.sep+'LocalStrings.properties';
 					try {
 						contents = fs.readFileSync(propertyFile);
-						lines.concat(contents.toString().split('\n'));
+						contents.toString().split('\n').forEach((line) => {
+							if (line.startsWith(key)) {
+								message[0] = (line.slice(key.length+1));
+							}
+						});
 					} catch(err) {}
+
+					if (locale !== '') {
+						var propertyFile = path.dirname(document.fileName)+path.sep+'LocalStrings_'+locale+'.properties';
+						try {
+							contents = fs.readFileSync(propertyFile);
+							contents.toString().split('\n').forEach((line) => {
+								if (line.startsWith(key)) {
+									message[1] = line.slice(key.length+1);
+								}
+							});
+						} catch(err) {
+						}	
+					}
 	
-					const key:string = word.slice(1, -1);
-					lines.forEach((line) => {
-						if (line.startsWith(key)) {
-							resolve(new vscode.Hover(line.slice(key.length+1)));
-						}
-					});
+					resolve(new vscode.Hover(message));
 				});
 			}
 			return;
