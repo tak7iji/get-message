@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
 			
 			if (typeof range !== 'undefined') {
-				return new Promise(resolve => {
+				return new Promise((resolve) => {
 					const word = document.getText(range);
 					var contents:Buffer;
 					var lines:string[] = [];
