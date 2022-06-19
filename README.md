@@ -8,6 +8,10 @@ View Tomcat's log message.
 
 ## Release Notes
 
+### 0.1.0
+
+Code refactoring.
+
 ### 0.0.1
 
 Initial release of view-tc-log-message.
