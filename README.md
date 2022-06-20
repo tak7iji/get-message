@@ -8,6 +8,10 @@ View Tomcat's log message.
 
 ## Release Notes
 
+### 0.1.2
+
+Set locale dynamically.
+
 ### 0.1.1
 
 Set default locale from vscode.env.lnguage.

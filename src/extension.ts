@@ -11,15 +11,20 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "view-tc-log-message" is now active!');
+	let locale:string = "";
+	var setLocale = function() {
+		locale = vscode.workspace.getConfiguration().get('conf.viewTcLogMessage.locale', "");
+		if (locale === "") {
+			locale = vscode.env.language;
+		}	
+	};
+	setLocale();
+
+	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => setLocale()));
 
 	var disposable = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
-			let locale = vscode.workspace.getConfiguration().get('conf.viewTcLogMessage.locale');
-			if (locale === "") {
-				locale = vscode.env.language;
-			}
-			console.info(locale);
 
 			if (typeof range !== 'undefined') {
 				return new Promise((resolve) => {
