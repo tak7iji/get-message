@@ -15,8 +15,8 @@ export function activate(context: vscode.ExtensionContext) {
 	var disposable = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
-			let locale = vscode.workspace.getConfiguration().get('conf.viewTcLogMessage.locale');
-			if (locale === "") {
+			let locale = vscode.workspace.getConfiguration().get<string>('conf.viewTcLogMessage.locale');
+			if (typeof locale === 'undefined' || locale === "") {
 				locale = vscode.env.language;
 			}
 			console.info(locale);
