@@ -25,22 +25,32 @@ export function activate(context: vscode.ExtensionContext) {
 	var disposable = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
+			let locale = vscode.workspace.getConfiguration().get('conf.viewTcLogMessage.locale');
+			if (locale === "") {
+				locale = vscode.env.language;
+			}
 
 			if (typeof range !== 'undefined') {
 				return new Promise((resolve) => {
 					const baseName = path.dirname(document.fileName) + path.sep + 'LocalStrings';
 					const extName = '.properties';
 					const key: string = document.getText(range).slice(1, -1);
-					let message: string[] = [];
+					let message: vscode.MarkdownString[] = [];
 
-					[baseName+extName, baseName+'_'+locale+extName].map((propertyFile,idx) => {
+					[baseName + extName, baseName + '_' + locale + extName].map((propertyFile, idx) => {
 						try {
-							fs.readFileSync(propertyFile).toString().split('\n').forEach((line) => {
+							fs.readFileSync(propertyFile).toString().split('\n').forEach((line, lineno) => {
 								if (line.startsWith(key)) {
-									message[idx] = line.slice(key.length + 1);
+									const args = [{ uri: propertyFile, position: lineno }];
+
+									const stageCommandUri = vscode.Uri.parse(
+										`command:estudio.internal.open?${encodeURIComponent(JSON.stringify(args))}`
+									);
+									message[idx] = new vscode.MarkdownString(`[${line.slice(key.length + 1)}](${stageCommandUri})`);
+									message[idx].isTrusted = true;
 								}
 							});
-						} catch (err) {	}	
+						} catch (err) { }
 					});
 
 					resolve(new vscode.Hover(message));
@@ -48,6 +58,18 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 	});
+
+	context.subscriptions.push(vscode.commands.registerCommand('estudio.internal.open', (args) => {
+		const pos = new vscode.Position(args.position, 0);
+		const range = new vscode.Range(pos, pos);
+
+		const opts: vscode.TextDocumentShowOptions = {
+			selection: range,
+			viewColumn: vscode.ViewColumn.Active
+		};
+
+		vscode.window.showTextDocument(vscode.Uri.file(args.uri), opts);
+	}));
 
 	context.subscriptions.push(disposable);
 }
