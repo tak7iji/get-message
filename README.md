@@ -8,6 +8,10 @@ View Tomcat's log message.
 
 ## Release Notes
 
+### 0.1.4
+
+Select message.
+
 ### 0.1.3
 
 Add link to message.

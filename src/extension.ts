@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 						try {
 							fs.readFileSync(propertyFile).toString().split('\n').forEach((line, lineno) => {
 								if (line.startsWith(key)) {
-									const args = [{ uri: propertyFile, position: lineno }];
+									const args = [{ uri: propertyFile, position: lineno, offset: key.length+1, length: line.length }];
 
 									const stageCommandUri = vscode.Uri.parse(
 										`command:estudio.internal.open?${encodeURIComponent(JSON.stringify(args))}`
@@ -60,15 +60,17 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(vscode.commands.registerCommand('estudio.internal.open', (args) => {
-		const pos = new vscode.Position(args.position, 0);
-		const range = new vscode.Range(pos, pos);
+		const start = new vscode.Position(args.position, args.offset);
+		const end = new vscode.Position(args.position, args.length);
+		const range = new vscode.Range(start, end);
+		const file = vscode.Uri.file(args.uri);
 
 		const opts: vscode.TextDocumentShowOptions = {
 			selection: range,
 			viewColumn: vscode.ViewColumn.Active
 		};
 
-		vscode.window.showTextDocument(vscode.Uri.file(args.uri), opts);
+		vscode.window.showTextDocument(file, opts);
 	}));
 
 	context.subscriptions.push(disposable);
