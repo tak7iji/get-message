@@ -42,9 +42,8 @@ export function activate(context: vscode.ExtensionContext) {
 							fs.readFileSync(propertyFile).toString().split('\n').forEach((line, lineno) => {
 								if (line.startsWith(key)) {
 									const args = [{ uri: propertyFile, position: lineno, offset: key.length+1, length: line.length }];
-
 									const stageCommandUri = vscode.Uri.parse(
-										`command:estudio.internal.open?${encodeURIComponent(JSON.stringify(args))}`
+										`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
 									);
 									message[idx] = new vscode.MarkdownString(`[${line.slice(key.length + 1)}](${stageCommandUri})`);
 									message[idx].isTrusted = true;
@@ -59,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	context.subscriptions.push(vscode.commands.registerCommand('estudio.internal.open', (args) => {
+	context.subscriptions.push(vscode.commands.registerCommand('tc.message.file.open', (args) => {
 		const start = new vscode.Position(args.position, args.offset);
 		const end = new vscode.Position(args.position, args.length);
 		const range = new vscode.Range(start, end);
