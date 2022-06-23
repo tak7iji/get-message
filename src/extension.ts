@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 						try {
 							fs.readFileSync(propertyFile).toString().split('\n').forEach((line, lineno) => {
 								if (line.startsWith(key)) {
-									const args = [{ uri: propertyFile, position: lineno, offset: key.length+1, length: line.length }];
+									const args = [{ uri: propertyFile, position: lineno, offset: key.length+1, length: line.length, originalUri: document.fileName, originalPos: position.line }];
 									const stageCommandUri = vscode.Uri.parse(
 										`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
 									);
@@ -69,7 +69,11 @@ export function activate(context: vscode.ExtensionContext) {
 			viewColumn: vscode.ViewColumn.Active
 		};
 
-		vscode.window.showTextDocument(file, opts);
+		const originalUri: vscode.Uri = vscode.Uri.file(args.originalUri);
+		const originalPos: vscode.Position = new vscode.Position(args.originalPos, 0);
+		const loc = new vscode.Location(file, range);
+		// vscode.window.showTextDocument(file, opts);
+		vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, [loc], 'peek');
 	}));
 
 	context.subscriptions.push(disposable);
