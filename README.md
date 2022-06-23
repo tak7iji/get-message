@@ -8,6 +8,10 @@ View Tomcat's log message.
 
 ## Release Notes
 
+### 0.2.0
+
+Use peekLocations.
+
 ### 0.1.4
 
 Select message.
