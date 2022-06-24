@@ -62,7 +62,6 @@ export function activate(context: vscode.ExtensionContext) {
 							locs: locs
 						}
 					];
-					console.log(args);
 					const stageCommandUri = vscode.Uri.parse(
 						`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
 					);
