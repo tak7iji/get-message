@@ -36,39 +36,46 @@ export function activate(context: vscode.ExtensionContext) {
 					const extName = '.properties';
 					const key: string = document.getText(range).slice(1, -1);
 					let message: vscode.MarkdownString[] = [];
-					let locs:{uri:string, position:number, offset:number, length:number}[] = [];
+					let files:{uri:string, position:number, offset:number, length:number}[] = [];
 
-					[baseName + extName, baseName + '_' + locale + extName].map((propertyFile, idx) => {
-						try {
-							fs.readFileSync(propertyFile).toString().split('\n').forEach((line, lineno) => {
-								if (line.startsWith(key)) {
-									locs[idx] = {
-										uri: propertyFile,
-										position: lineno,
-										offset: key.length + 1,
-										length: line.length
-									};
-									message[idx] = new vscode.MarkdownString(line.slice(key.length + 1));
-									message[idx].isTrusted = true;
-								}
-							});
-						} catch (err) { }
+					vscode.workspace.fs.readDirectory(vscode.Uri.file(path.dirname(document.fileName))).then((res) => {
+						res.map((value) => {
+							if(value[0].startsWith('LocalStrings')){
+								try {
+									let fileName = path.dirname(document.fileName) + path.sep + value[0];
+									fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
+										if (line.startsWith(key)) {
+											files.push({
+												uri: fileName,
+												position: lineno,
+												offset: key.length + 1,
+												length: line.length
+											});
+											if (value[0] === 'LocalStrings.properties' || value[0] === `LocalStrings_${locale}.properties`) {
+												message.push(new vscode.MarkdownString(line.slice(key.length + 1)));
+											}
+										}
+									});
+								} catch (err) { }
+							}
+						});
+						const args: any[] = [
+							{
+								fileName: document.fileName,
+								position: position.line,
+								files: files
+							}
+						];
+						const stageCommandUri = vscode.Uri.parse(
+							`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
+						);
+						message[2] = new vscode.MarkdownString(`[Peek...](${stageCommandUri})`);
+						message[2].isTrusted = true;
+	
+						resolve(new vscode.Hover(message));
+	
 					});
 
-					const args: any[] = [
-						{
-							fileName: document.fileName,
-							position: position.line,
-							locs: locs
-						}
-					];
-					const stageCommandUri = vscode.Uri.parse(
-						`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
-					);
-					message[2] = new vscode.MarkdownString(`[Peek...](${stageCommandUri})`);
-					message[2].isTrusted = true;
-
-					resolve(new vscode.Hover(message));
 				});
 			}
 		}
@@ -80,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		let locs: vscode.Location[] = [];
 
-		args.locs.forEach((arg: { uri: string; position: number; offset: number; length: number; }, idx: number) => {
+		args.files.forEach((arg: { uri: string; position: number; offset: number; length: number; }, idx: number) => {
 			locs[idx] = new vscode.Location(
 				vscode.Uri.file(arg.uri),
 				new vscode.Range(
