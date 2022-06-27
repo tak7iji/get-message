@@ -25,10 +25,6 @@ export function activate(context: vscode.ExtensionContext) {
 	var disposable = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
-			let locale = vscode.workspace.getConfiguration().get('conf.viewTcLogMessage.locale');
-			if (locale === "") {
-				locale = vscode.env.language;
-			}
 
 			if (typeof range !== 'undefined') {
 				return new Promise((resolve) => {
@@ -36,46 +32,29 @@ export function activate(context: vscode.ExtensionContext) {
 					const extName = '.properties';
 					const key: string = document.getText(range).slice(1, -1);
 					let message: vscode.MarkdownString[] = [];
-					let files:{uri:string, position:number, offset:number, length:number}[] = [];
 
-					vscode.workspace.fs.readDirectory(vscode.Uri.file(path.dirname(document.fileName))).then((res) => {
-						res.map((value) => {
-							if(value[0].startsWith('LocalStrings')){
-								try {
-									let fileName = path.dirname(document.fileName) + path.sep + value[0];
-									fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
-										if (line.startsWith(key)) {
-											files.push({
-												uri: fileName,
-												position: lineno,
-												offset: key.length + 1,
-												length: line.length
-											});
-											if (value[0] === 'LocalStrings.properties' || value[0] === `LocalStrings_${locale}.properties`) {
-												message.push(new vscode.MarkdownString(line.slice(key.length + 1)));
-											}
-										}
-									});
-								} catch (err) { }
+					[baseName+extName, baseName+'_'+locale+extName].map((fileName)=>{
+						fs.readFileSync(fileName).toString().split('\n').forEach((line) => {
+							if (line.startsWith(key)) {
+								message.push(new vscode.MarkdownString(line.slice(key.length + 1)));
 							}
 						});
-						const args: any[] = [
-							{
-								fileName: document.fileName,
-								position: position.line,
-								files: files
-							}
-						];
-						const stageCommandUri = vscode.Uri.parse(
-							`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
-						);
-						message[2] = new vscode.MarkdownString(`[Peek...](${stageCommandUri})`);
-						message[2].isTrusted = true;
-	
-						resolve(new vscode.Hover(message));
-	
 					});
+					const args: any[] = [
+						{
+							fileName: document.fileName,
+							key: key,
+							position: position.line,
+						}
+					];
 
+					const stageCommandUri = vscode.Uri.parse(
+						`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
+					);
+					message[2] = new vscode.MarkdownString(`[Peek...](${stageCommandUri})`);
+					message[2].isTrusted = true;
+
+					resolve(new vscode.Hover(message));
 				});
 			}
 		}
@@ -86,18 +65,28 @@ export function activate(context: vscode.ExtensionContext) {
 		const originalPos: vscode.Position = new vscode.Position(args.position, 0);
 
 		let locs: vscode.Location[] = [];
-
-		args.files.forEach((arg: { uri: string; position: number; offset: number; length: number; }, idx: number) => {
-			locs[idx] = new vscode.Location(
-				vscode.Uri.file(arg.uri),
-				new vscode.Range(
-					new vscode.Position(arg.position, arg.offset),
-					new vscode.Position(arg.position, arg.length)
-				)
-			);
+		vscode.workspace.fs.readDirectory(vscode.Uri.file(path.dirname(args.fileName))).then((res) => {
+			let res2 = res.map((value) => {
+				if(value[0].startsWith('LocalStrings')){
+					try {
+						let fileName = path.dirname(args.fileName) + path.sep + value[0];
+						fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
+							if (line.startsWith(args.key)) {
+								locs.push(new vscode.Location(
+									vscode.Uri.file(fileName),
+									new vscode.Range(
+										new vscode.Position(lineno, args.key.length+1),
+										new vscode.Position(lineno, line.length)
+									)
+								));
+							}
+						});
+					} catch (err) { }
+				}				
+			});
+			vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
 		});
 
-		vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
 	}));
 
 	context.subscriptions.push(disposable);
