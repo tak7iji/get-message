@@ -40,19 +40,24 @@ export function activate(context: vscode.ExtensionContext) {
 								return new vscode.MarkdownString(line.slice(key.length + 1));
 							}));
 					});
-					const args: any[] = [
-						{
+
+					const peekCommandUri = vscode.Uri.parse(
+						`command:tc.message.peek.location?${encodeURIComponent(JSON.stringify({
 							fileName: document.fileName,
 							key: key,
 							position: position.line,
-						}
-					];
-
-					const stageCommandUri = vscode.Uri.parse(
-						`command:tc.message.file.open?${encodeURIComponent(JSON.stringify(args))}`
+						}))}`
 					);
-					message[2] = new vscode.MarkdownString(`[Peek...](${stageCommandUri})`);
+					message[2] = new vscode.MarkdownString(`[Peek...](${peekCommandUri})`);
 					message[2].isTrusted = true;
+
+					const searchCommandUri = vscode.Uri.parse(
+						`command:tc.message.search.message?${encodeURIComponent(JSON.stringify({
+							key: key,
+						}))}`
+					);
+					message[3] = new vscode.MarkdownString(`[Search...](${searchCommandUri})`);
+					message[3].isTrusted = true;
 
 					resolve(new vscode.Hover(message));
 				});
@@ -60,7 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	context.subscriptions.push(vscode.commands.registerCommand('tc.message.file.open', (args) => {
+	context.subscriptions.push(vscode.commands.registerCommand('tc.message.peek.location', (args) => {
 		const originalUri: vscode.Uri = vscode.Uri.file(args.fileName);
 		const originalPos: vscode.Position = new vscode.Position(args.position, 0);
 
@@ -87,6 +92,16 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
 		});
 
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('tc.message.search.message', (args) => {
+		vscode.commands.executeCommand('workbench.action.findInFiles', {
+			query: args.key,
+			triggerSearch: true,
+			matchWholeWord: true,
+			isCaseSensitive: true,
+			filesToInclude: 'LocalStrings*.properties',
+		});
 	}));
 
 	context.subscriptions.push(disposable);
