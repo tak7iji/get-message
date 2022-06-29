@@ -31,15 +31,13 @@ export function activate(context: vscode.ExtensionContext) {
 					const baseName = path.dirname(document.fileName) + path.sep + 'LocalStrings';
 					const extName = '.properties';
 					const key: string = document.getText(range).slice(1, -1);
-					let message: vscode.MarkdownString[] = [];
-
-					[baseName + extName, baseName + '_' + locale + extName].map((fileName) => {
-						message = message.concat(fs.readFileSync(fileName).toString().split('\n')
+					let message: vscode.MarkdownString[] = [baseName + extName, baseName + '_' + locale + extName].flatMap(fileName =>
+						fs.readFileSync(fileName).toString().split('\n')
 							.filter((line) => line.startsWith(key))
 							.map((line) => {
 								return new vscode.MarkdownString(line.slice(key.length + 1));
-							}));
-					});
+							})
+					);
 
 					const peekCommandUri = vscode.Uri.parse(
 						`command:tc.message.peek.location?${encodeURIComponent(JSON.stringify({
@@ -71,24 +69,23 @@ export function activate(context: vscode.ExtensionContext) {
 
 		let locs: vscode.Location[] = [];
 		vscode.workspace.fs.readDirectory(vscode.Uri.file(path.dirname(args.fileName))).then((res) => {
-			res.filter((value) => value[0].startsWith('LocalStrings'))
-				.map((value) => {
-					try {
-						let fileName = path.dirname(args.fileName) + path.sep + value[0];
-						fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
-							if (line.startsWith(args.key)) {
-								locs.push(new vscode.Location(
-									vscode.Uri.file(fileName),
-									new vscode.Range(
-										new vscode.Position(lineno, args.key.length + 1),
-										new vscode.Position(lineno, line.length)
-									)
-								));
-								return;
-							}
-						});
-					} catch (err) { }
-				});
+			res.filter((value) => value[0].startsWith('LocalStrings')).map((value) => {
+				let fileName = path.dirname(args.fileName) + path.sep + value[0];
+				try {
+					fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
+						if (line.startsWith(args.key)) {
+							locs.push(new vscode.Location(
+								vscode.Uri.file(fileName),
+								new vscode.Range(
+									new vscode.Position(lineno, args.key.length + 1),
+									new vscode.Position(lineno, line.length)
+								)
+							));
+							return;
+						}
+					});
+				} catch (err) { }
+			});
 			vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
 		});
 
