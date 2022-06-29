@@ -30,12 +30,12 @@ export function activate(context: vscode.ExtensionContext) {
 				return new Promise((resolve) => {
 					const baseName = path.dirname(document.fileName) + path.sep + 'LocalStrings';
 					const extName = '.properties';
-					const key: string = document.getText(range).slice(1, -1);
+					const key: string = document.getText(range).slice(1, -1)+"=";
 					let message: vscode.MarkdownString[] = [baseName + extName, baseName + '_' + locale + extName].flatMap(fileName =>
 						fs.readFileSync(fileName).toString().split('\n')
 							.filter((line) => line.startsWith(key))
 							.map((line) => {
-								return new vscode.MarkdownString(line.slice(key.length + 1));
+								return new vscode.MarkdownString(line.slice(key.length));
 							})
 					);
 
@@ -46,16 +46,17 @@ export function activate(context: vscode.ExtensionContext) {
 							position: position.line,
 						}))}`
 					);
-					message[2] = new vscode.MarkdownString(`[Peek...](${peekCommandUri})`);
-					message[2].isTrusted = true;
+					let messageSize = message.length;
+					message[messageSize] = new vscode.MarkdownString(`[Peek...](${peekCommandUri})`);
+					message[messageSize].isTrusted = true;
 
 					const searchCommandUri = vscode.Uri.parse(
 						`command:tc.message.search.message?${encodeURIComponent(JSON.stringify({
 							key: key,
 						}))}`
 					);
-					message[3] = new vscode.MarkdownString(`[Search...](${searchCommandUri})`);
-					message[3].isTrusted = true;
+					message[messageSize+1] = new vscode.MarkdownString(`[Search...](${searchCommandUri})`);
+					message[messageSize+1].isTrusted = true;
 
 					resolve(new vscode.Hover(message));
 				});
@@ -77,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 							locs.push(new vscode.Location(
 								vscode.Uri.file(fileName),
 								new vscode.Range(
-									new vscode.Position(lineno, args.key.length + 1),
+									new vscode.Position(lineno, args.key.length),
 									new vscode.Position(lineno, line.length)
 								)
 							));
@@ -91,15 +92,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('tc.message.search.message', (args) => {
+	context.subscriptions.push(vscode.commands.registerCommand('tc.message.search.message', (args) => 
 		vscode.commands.executeCommand('workbench.action.findInFiles', {
 			query: args.key,
 			triggerSearch: true,
 			matchWholeWord: true,
 			isCaseSensitive: true,
 			filesToInclude: 'LocalStrings*.properties',
-		});
-	}));
+		})
+	));
 
 	context.subscriptions.push(disposable);
 }
