@@ -77,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
 								new vscode.Position(lineno, line.length)
 							)
 						));
-					return;
+						return;
 					}
 				});
 			});
