@@ -6,6 +6,10 @@ This is the README for "view-tc-log-message".
 
 View Tomcat's log message.
 
+### 0.3.1
+
+Add debug message.
+
 ### 0.3.0
 
 Add search command.

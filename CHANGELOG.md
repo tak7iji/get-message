@@ -2,6 +2,10 @@
 
 All notable changes to the "view-tc-log-message" extension will be documented in this file.
 
+### 0.3.1
+
+Add debug message.
+
 ### 0.3.0
 
 Add search command.

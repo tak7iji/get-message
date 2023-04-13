@@ -10,13 +10,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "view-tc-log-message" is now active!');
+	let output = vscode.window.createOutputChannel("View Tc Log");
+	output.appendLine('Congratulations, your extension "view-tc-log-message" is now active!');
 	let locale: string = "";
 	var setLocale = function () {
 		locale = vscode.workspace.getConfiguration().get('conf.viewTcLogMessage.locale', "");
 		if (locale === "") {
 			locale = vscode.env.language;
 		}
+		output.appendLine('locale: ' + locale);
 	};
 	setLocale();
 
@@ -31,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 					const baseName = path.dirname(document.fileName) + path.sep + 'LocalStrings';
 					const extName = '.properties';
 					const key: string = document.getText(range).slice(1, -1) + "=";
+					output.appendLine('key: ' + key);
 					let message: vscode.MarkdownString[] = [baseName + extName, baseName + '_' + locale + extName].map(fileName =>
 						new vscode.MarkdownString(fs.readFileSync(fileName).toString().split('\n').find((line) => line.startsWith(key))?.slice(key.length))
 					);
