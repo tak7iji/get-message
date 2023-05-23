@@ -37,19 +37,20 @@ export function activate(context: vscode.ExtensionContext) {
 					let message: vscode.MarkdownString[] = [baseName + extName, baseName + '_' + locale + extName].map(fileName => {
 							const msgs = fs.readFileSync(fileName).toString().split('\n');
 							const idx = msgs.findIndex((line) => line.startsWith(key));
-							let msg = msgs[idx].slice(key.length).trimEnd();
-							output.appendLine("EOL(1): " + msg.substring(msg.length-1));
-							if (msg.substring(msg.length-1)==="\\") {
-								for(let i=idx+1; idx < msgs.length; i++) {
+							let msg = "";
+							output.appendLine("EOL(1): " + msg.slice(-1));
+							let checkEOM = (i: number) => {
+								if(i < msgs.length) {
 									const addLine: string = msgs[i].trimEnd();
 									msg = msg + addLine;
-									output.appendLine("EOL(2): " + addLine.substring(addLine.length - 1));
-									if(msgs[i].substring(msgs[i].length - 1) !== "\\") {
-										break;
+									output.appendLine("EOL(2): " + addLine.slice(-1));
+									if(addLine.slice(-1) === "\\") {
+										checkEOM(i+1);
 									}
 								}
-							}
-							return new vscode.MarkdownString(msg);
+							};
+							checkEOM(idx);
+							return new vscode.MarkdownString(msg.slice(key.length));
 						}
 					);
 
