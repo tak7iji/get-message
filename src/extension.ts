@@ -34,8 +34,23 @@ export function activate(context: vscode.ExtensionContext) {
 					const extName = '.properties';
 					const key: string = document.getText(range).slice(1, -1) + "=";
 					output.appendLine('key: ' + key);
-					let message: vscode.MarkdownString[] = [baseName + extName, baseName + '_' + locale + extName].map(fileName =>
-						new vscode.MarkdownString(fs.readFileSync(fileName).toString().split('\n').find((line) => line.startsWith(key))?.slice(key.length))
+					let message: vscode.MarkdownString[] = [baseName + extName, baseName + '_' + locale + extName].map(fileName => {
+							const msgs = fs.readFileSync(fileName).toString().split('\n');
+							const idx = msgs.findIndex((line) => line.startsWith(key));
+							let msg = msgs[idx].slice(key.length).trimEnd();
+							output.appendLine("EOL(1): " + msg.substring(msg.length-1));
+							if (msg.substring(msg.length-1)==="\\") {
+								for(let i=idx+1; idx < msgs.length; i++) {
+									const addLine: string = msgs[i].trimEnd();
+									msg = msg + addLine;
+									output.appendLine("EOL(2): " + addLine.substring(addLine.length - 1));
+									if(msgs[i].substring(msgs[i].length - 1) !== "\\") {
+										break;
+									}
+								}
+							}
+							return new vscode.MarkdownString(msg);
+						}
 					);
 
 					const peekCommandUri = vscode.Uri.parse(

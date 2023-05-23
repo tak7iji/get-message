@@ -2,6 +2,10 @@
 
 All notable changes to the "view-tc-log-message" extension will be documented in this file.
 
+### 0.3.2
+
+Support multiline message.
+
 ### 0.3.1
 
 Add debug message.

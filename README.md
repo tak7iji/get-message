@@ -5,6 +5,11 @@ This is the README for "view-tc-log-message".
 ## Features
 
 View Tomcat's log message.
+build: vsce package
+
+### 0.3.2
+
+Support multiline message.
 
 ### 0.3.1
 

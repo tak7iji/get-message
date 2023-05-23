@@ -3,7 +3,7 @@
     "name": "view-tc-log-message",
 	"displayName": "view-tc-log-message",
 	"description": "View Tomcat Log Message",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"engines": {
 		"vscode": "^1.68.0"
 	},
