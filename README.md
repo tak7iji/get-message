@@ -7,6 +7,10 @@ This is the README for "view-tc-log-message".
 View Tomcat's log message.
 build: vsce package
 
+### 0.3.4
+
+Fix bug.
+
 ### 0.3.3
 
 Code refactoring.

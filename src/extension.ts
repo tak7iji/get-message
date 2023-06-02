@@ -38,18 +38,19 @@ export function activate(context: vscode.ExtensionContext) {
 							const msgs = fs.readFileSync(fileName).toString().split('\n');
 							const idx = msgs.findIndex((line) => line.startsWith(key));
 							let msg = "";
-							output.appendLine("EOL(1): " + msg.slice(-1));
+							output.appendLine("Check start. index: "+idx);
 							let checkEOM = (i: number) => {
 								if(i < msgs.length) {
 									const addLine: string = msgs[i].trimEnd();
 									msg = msg + addLine;
-									output.appendLine("EOL(2): " + addLine.slice(-1));
+									output.appendLine("EOL: " + addLine.slice(-1));
 									if(addLine.slice(-1) === "\\") {
 										checkEOM(i+1);
 									}
 								}
 							};
-							checkEOM(idx);
+							if (idx > 0) { checkEOM(idx); }
+							output.appendLine("Check ended. Message: "+msg);
 							return new vscode.MarkdownString(msg.slice(key.length));
 						}
 					);
