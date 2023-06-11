@@ -58,7 +58,8 @@ export function activate(context: vscode.ExtensionContext) {
 											propertiesFileName: document.fileName,
 											propertiesPosition: position.line,
 											sourceFileName: fileName,
-											sourcePosition: lineno
+											sourcePosition: lineno,
+											sourceLineLength: line.length
 										}))}`
 									);				
 									message.appendMarkdown(`[Peek...](${peekCommandUri})`);
@@ -146,7 +147,10 @@ export function activate(context: vscode.ExtensionContext) {
 		let locs: vscode.Location[] = [
 			new vscode.Location(
 				vscode.Uri.file(args.sourceFileName),
-				new vscode.Position(args.sourcePosition, 0)
+				new vscode.Range(
+					new vscode.Position(args.sourcePosition, 0),
+					new vscode.Position(args.sourcePosition, args.sourceLineLength-1)
+				)
 			)			
 		];
 		vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
