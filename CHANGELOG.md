@@ -2,6 +2,14 @@
 
 All notable changes to the "view-tc-log-message" extension will be documented in this file.
 
+### 0.4.0
+
+Search used key location
+
+### 0.3.4
+
+Fix bug.
+
 ### 0.3.3
 
 Code refactoring.

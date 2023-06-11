@@ -24,9 +24,58 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => setLocale()));
 
-	var disposable = vscode.languages.registerHoverProvider('java', {
+	var searchMessageFromProperty = vscode.languages.registerHoverProvider({ pattern: '**/*.properties' }, 
+	{
 		provideHover(document, position, token) {
-			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z]+\.)+[a-zA-Z]+\"/);
+			output.appendLine('Get key from property file...');
+			output.appendLine('Workspace: '+vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath);
+			const range = document.getWordRangeAtPosition(position, /([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+(?=\=)/);
+			output.appendLine('Line: '+position.line);
+
+			if (typeof range !== 'undefined') {
+				const key: string = document.getText(range).slice(0, -1);
+				output.appendLine('key: ' + key);
+				return new Promise((resolve) => {
+					const baseName = path.dirname(document.fileName) + path.sep;
+					vscode.workspace.fs.readDirectory(vscode.Uri.file(baseName)).then((res) => {
+						res.filter((value) => value[0].endsWith('.java')).map((value) => {
+							const fileName = baseName + value[0];
+							fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
+								if (line.includes(key)) {
+									output.appendLine('filename:' + fileName + ',' + lineno + ':' + line);
+									const pathIndex = fileName.indexOf('java');
+									
+									let message: vscode.MarkdownString = new vscode.MarkdownString();
+									message.isTrusted = true;
+									message.supportHtml = true;
+									message.appendMarkdown('### '+fileName.slice(pathIndex+5,-1)+':'+(lineno+1));
+									message.appendMarkdown('\n');
+									message.appendMarkdown('```java\n');
+									message.appendMarkdown(line.trimStart()+"\n");
+									message.appendMarkdown('```\n');
+									const peekCommandUri = vscode.Uri.parse(
+										`command:tc.message.peek.source.location?${encodeURIComponent(JSON.stringify({
+											propertiesFileName: document.fileName,
+											propertiesPosition: position.line,
+											sourceFileName: fileName,
+											sourcePosition: lineno
+										}))}`
+									);				
+									message.appendMarkdown(`[Peek...](${peekCommandUri})`);
+									resolve(new vscode.Hover(message));
+								}
+							});
+						});
+					});	
+				});
+			}
+		}
+	});
+	context.subscriptions.push(searchMessageFromProperty);
+
+	var searchMessageFromSource = vscode.languages.registerHoverProvider('java', {
+		provideHover(document, position, token) {
+			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+\"/);
 
 			if (typeof range !== 'undefined') {
 				return new Promise((resolve) => {
@@ -34,7 +83,10 @@ export function activate(context: vscode.ExtensionContext) {
 					const extName = '.properties';
 					const key: string = document.getText(range).slice(1, -1) + "=";
 					output.appendLine('key: ' + key);
-					let message: vscode.MarkdownString[] = [baseName + extName, baseName + '_' + locale + extName].map(fileName => {
+					let message: vscode.MarkdownString = new vscode.MarkdownString();
+					message.isTrusted = true;
+					message.supportHtml = true;
+					[baseName + extName, baseName + '_' + locale + extName].map(fileName => {
 							const msgs = fs.readFileSync(fileName).toString().split('\n');
 							const idx = msgs.findIndex((line) => line.startsWith(key));
 							let msg = "";
@@ -51,36 +103,57 @@ export function activate(context: vscode.ExtensionContext) {
 							};
 							if (idx > 0) { checkEOM(idx); }
 							output.appendLine("Check ended. Message: "+msg);
-							return new vscode.MarkdownString(msg.slice(key.length));
+							message.appendMarkdown(msg.slice(key.length));
+							message.appendMarkdown('<br>');
 						}
 					);
 
 					const peekCommandUri = vscode.Uri.parse(
-						`command:tc.message.peek.location?${encodeURIComponent(JSON.stringify({
+						`command:tc.message.peek.properties.location?${encodeURIComponent(JSON.stringify({
 							fileName: document.fileName,
 							key: key,
 							position: position.line,
 						}))}`
 					);
-					let messageSize = message.length;
-					message[messageSize] = new vscode.MarkdownString(`[Peek...](${peekCommandUri})`);
-					message[messageSize].isTrusted = true;
+					message.appendMarkdown('<hr>');
+					message.appendMarkdown(`[Peek...](${peekCommandUri})`);
+					message.appendMarkdown('<br>');
 
 					const searchCommandUri = vscode.Uri.parse(
 						`command:tc.message.search.message?${encodeURIComponent(JSON.stringify({
 							key: key,
 						}))}`
 					);
-					message[messageSize + 1] = new vscode.MarkdownString(`[Search...](${searchCommandUri})`);
-					message[messageSize + 1].isTrusted = true;
+					message.appendMarkdown(`[Search...](${searchCommandUri})`);
 
 					resolve(new vscode.Hover(message));
 				});
 			}
 		}
 	});
+	context.subscriptions.push(searchMessageFromSource);
 
-	context.subscriptions.push(vscode.commands.registerCommand('tc.message.peek.location', (args) => {
+	context.subscriptions.push(vscode.commands.registerCommand('tc.message.peek.source.location', (args) => {
+		output.appendLine('Peek source file');
+		output.appendLine('properties file: '+args.propertiesFileName);
+		output.appendLine('propertise pos: '+args.propertiesPosition);
+		output.appendLine('source file: '+args.sourceFileName);
+		output.appendLine('source pos: '+args.sourcePosition);
+		
+		const originalUri: vscode.Uri = vscode.Uri.file(args.propertiesFileName);
+		const originalPos: vscode.Position = new vscode.Position(args.propertiesPosition,0);
+
+		let locs: vscode.Location[] = [
+			new vscode.Location(
+				vscode.Uri.file(args.sourceFileName),
+				new vscode.Position(args.sourcePosition, 0)
+			)			
+		];
+		vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
+
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('tc.message.peek.properties.location', (args) => {
 		const originalUri: vscode.Uri = vscode.Uri.file(args.fileName);
 		const originalPos: vscode.Position = new vscode.Position(args.position, 0);
 
@@ -115,8 +188,6 @@ export function activate(context: vscode.ExtensionContext) {
 			filesToInclude: 'LocalStrings*.properties',
 		})
 	));
-
-	context.subscriptions.push(disposable);
 }
 
 // this method is called when your extension is deactivated
