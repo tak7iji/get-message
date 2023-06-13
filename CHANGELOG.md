@@ -2,6 +2,10 @@
 
 All notable changes to the "view-tc-log-message" extension will be documented in this file.
 
+### 0.4.2
+
+Support modules
+
 ### 0.4.1
 
 Add highlighting

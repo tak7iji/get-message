@@ -7,6 +7,10 @@ This is the README for "view-tc-log-message".
 View Tomcat's log message.
 build: vsce package
 
+### 0.4.2
+
+Support modules
+
 ### 0.4.1
 
 Add highlighting

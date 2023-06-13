@@ -27,8 +27,10 @@ export function activate(context: vscode.ExtensionContext) {
 	var searchMessageFromProperty = vscode.languages.registerHoverProvider({ pattern: '**/*.properties' }, 
 	{
 		provideHover(document, position, token) {
+			const projectPath = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath;
+			const projectPathLength = (projectPath !== undefined) ? projectPath.length : 0;
 			output.appendLine('Get key from property file...');
-			output.appendLine('Workspace: '+vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath);
+			output.appendLine('Workspace: '+projectPath);
 			const range = document.getWordRangeAtPosition(position, /([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+(?=\=)/);
 			output.appendLine('Line: '+position.line);
 
@@ -43,12 +45,11 @@ export function activate(context: vscode.ExtensionContext) {
 							fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
 								if (line.includes(key)) {
 									output.appendLine('filename:' + fileName + ',' + lineno + ':' + line);
-									const pathIndex = fileName.indexOf('java');
 									
 									let message: vscode.MarkdownString = new vscode.MarkdownString();
 									message.isTrusted = true;
 									message.supportHtml = true;
-									message.appendMarkdown('### '+fileName.slice(pathIndex+5,-1)+':'+(lineno+1));
+									message.appendMarkdown('### '+fileName.slice(projectPathLength+6,-1)+':'+(lineno+1));
 									message.appendMarkdown('\n');
 									message.appendMarkdown('```java\n');
 									message.appendMarkdown(line.trimStart()+"\n");
@@ -76,6 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	var searchMessageFromSource = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
+			const projectPath = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath;
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+\"/);
 
 			if (typeof range !== 'undefined') {
@@ -87,25 +89,43 @@ export function activate(context: vscode.ExtensionContext) {
 					let message: vscode.MarkdownString = new vscode.MarkdownString();
 					message.isTrusted = true;
 					message.supportHtml = true;
-					[baseName + extName, baseName + '_' + locale + extName].map(fileName => {
-							const msgs = fs.readFileSync(fileName).toString().split('\n');
-							const idx = msgs.findIndex((line) => line.startsWith(key));
-							let msg = "";
-							output.appendLine("Check start. index: "+idx);
-							let checkEOM = (i: number) => {
-								if(i < msgs.length) {
-									const addLine: string = msgs[i].trimEnd();
-									msg = msg + addLine;
-									output.appendLine("EOL: " + addLine.slice(-1));
-									if(addLine.slice(-1) === "\\") {
-										checkEOM(i+1);
+					let targetFiles: string[] = [baseName + extName, baseName + '_' + locale + extName];
+					if (baseName.includes('modules')) {
+						let projectPath = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath + path.sep + "java" + path.sep;
+						for(var idx = 0; idx < document.lineCount; idx++) {
+							let line = document.lineAt(idx).text;
+							if(line.startsWith('package')) {
+								const regex = /package (?<package>.+);/;
+								const match = regex.exec(line);
+								const additionalPath = projectPath+match?.groups?.package.replace(/\./g, path.sep)+path.sep;
+								targetFiles.push(additionalPath+'LocalStrings'+extName);
+								targetFiles.push(additionalPath+'LocalStrings_'+locale+extName);
+							}
+						}
+					}
+					output.appendLine(targetFiles.toString());
+					targetFiles.map(fileName => {
+							output.appendLine('Target file: '+fileName);
+							try {
+								const msgs = fs.readFileSync(fileName).toString().split('\n');
+								const idx = msgs.findIndex((line) => line.startsWith(key));
+								let msg = "";
+								output.appendLine("Check start. index: "+idx);
+								let checkEOM = (i: number) => {
+									if(i < msgs.length) {
+										const addLine: string = msgs[i].trimEnd();
+										msg = msg + addLine;
+										output.appendLine("EOL: " + addLine.slice(-1));
+										if(addLine.slice(-1) === "\\") {
+											checkEOM(i+1);
+										}
 									}
-								}
-							};
-							if (idx > 0) { checkEOM(idx); }
-							output.appendLine("Check ended. Message: "+msg);
-							message.appendMarkdown(msg.slice(key.length));
-							message.appendMarkdown('<br>');
+								};
+								if (idx > 0) { checkEOM(idx); }
+								output.appendLine("Check ended. Message: "+msg);
+								message.appendMarkdown(msg.slice(key.length));
+								message.appendMarkdown('<br>');
+							} catch(ex){}
 						}
 					);
 
