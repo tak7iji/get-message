@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 			output.appendLine(`Line: ${position.line}`);
 
 			if (typeof range !== 'undefined') {
-				const key: string = document.getText(range).slice(0, -1);
+				const key: string = `"${document.getText(range)}"`;
 				output.appendLine(`key: ${key}`);
 				return new Promise((resolve) => {
 					const baseName = path.dirname(document.fileName) + path.sep;
