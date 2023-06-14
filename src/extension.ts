@@ -30,13 +30,13 @@ export function activate(context: vscode.ExtensionContext) {
 			const projectPath = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath;
 			const projectPathLength = (projectPath !== undefined) ? projectPath.length : 0;
 			output.appendLine('Get key from property file...');
-			output.appendLine('Workspace: '+projectPath);
+			output.appendLine(`Workspace: ${projectPath}`);
 			const range = document.getWordRangeAtPosition(position, /([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+(?=\=)/);
-			output.appendLine('Line: '+position.line);
+			output.appendLine(`Line: ${position.line}`);
 
 			if (typeof range !== 'undefined') {
 				const key: string = document.getText(range).slice(0, -1);
-				output.appendLine('key: ' + key);
+				output.appendLine(`key: ${key}`);
 				return new Promise((resolve) => {
 					const baseName = path.dirname(document.fileName) + path.sep;
 					vscode.workspace.fs.readDirectory(vscode.Uri.file(baseName)).then((res) => {
@@ -44,15 +44,15 @@ export function activate(context: vscode.ExtensionContext) {
 							const fileName = baseName + value[0];
 							fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
 								if (line.includes(key)) {
-									output.appendLine('filename:' + fileName + ',' + lineno + ':' + line);
+									output.appendLine(`filename: ${fileName}, ${lineno}: ${line}`);
 									
 									let message: vscode.MarkdownString = new vscode.MarkdownString();
 									message.isTrusted = true;
 									message.supportHtml = true;
-									message.appendMarkdown('### '+fileName.slice(projectPathLength+6,-1)+':'+(lineno+1));
+									message.appendMarkdown(`### ${fileName.slice(projectPathLength+6,-1)}:${lineno+1}`);
 									message.appendMarkdown('\n');
 									message.appendMarkdown('```java\n');
-									message.appendMarkdown(line.trimStart()+"\n");
+									message.appendMarkdown(`${line.trimStart()}\n`);
 									message.appendMarkdown('```\n');
 									const peekCommandUri = vscode.Uri.parse(
 										`command:tc.message.peek.source.location?${encodeURIComponent(JSON.stringify({
@@ -77,19 +77,21 @@ export function activate(context: vscode.ExtensionContext) {
 
 	var searchMessageFromSource = vscode.languages.registerHoverProvider('java', {
 		provideHover(document, position, token) {
+			output.appendLine(`WorkspaceFolders: ${vscode.workspace?.workspaceFolders?.toString()}`);
 			const projectPath = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath;
 			const range = document.getWordRangeAtPosition(position, /\"([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+\"/);
 
 			if (typeof range !== 'undefined') {
 				return new Promise((resolve) => {
-					const baseName = path.dirname(document.fileName) + path.sep + 'LocalStrings';
+					const baseName = `${path.dirname(document.fileName)}${path.sep}LocalStrings`;
 					const extName = '.properties';
-					const key: string = document.getText(range).slice(1, -1) + "=";
-					output.appendLine('key: ' + key);
+					const key: string = `${document.getText(range).slice(1, -1)}=`;
+					output.appendLine(`key: ${key}`);
 					let message: vscode.MarkdownString = new vscode.MarkdownString();
 					message.isTrusted = true;
 					message.supportHtml = true;
-					let targetFiles: string[] = [baseName + extName, baseName + '_' + locale + extName];
+					let targetFiles: string[] = [`${baseName}${extName}`, `${baseName}_${locale}${extName}`];
+					let additionalPath: string | null = null;
 					if (baseName.includes('modules')) {
 						let projectPath = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName))?.uri.fsPath + path.sep + "java" + path.sep;
 						for(var idx = 0; idx < document.lineCount; idx++) {
@@ -97,32 +99,33 @@ export function activate(context: vscode.ExtensionContext) {
 							if(line.startsWith('package')) {
 								const regex = /package (?<package>.+);/;
 								const match = regex.exec(line);
-								const additionalPath = projectPath+match?.groups?.package.replace(/\./g, path.sep)+path.sep;
-								targetFiles.push(additionalPath+'LocalStrings'+extName);
-								targetFiles.push(additionalPath+'LocalStrings_'+locale+extName);
+								additionalPath = projectPath+match?.groups?.package.replace(/\./g, path.sep);
+								targetFiles.push(`${additionalPath}${path.sep}LocalStrings${extName}`);
+								targetFiles.push(`${additionalPath}${path.sep}LocalStrings_${locale}${extName}`);
+								break;
 							}
 						}
 					}
 					output.appendLine(targetFiles.toString());
 					targetFiles.map(fileName => {
-							output.appendLine('Target file: '+fileName);
+							output.appendLine(`Target file: ${fileName}`);
 							try {
 								const msgs = fs.readFileSync(fileName).toString().split('\n');
 								const idx = msgs.findIndex((line) => line.startsWith(key));
 								let msg = "";
-								output.appendLine("Check start. index: "+idx);
+								output.appendLine(`Check start. index: ${idx}`);
 								let checkEOM = (i: number) => {
 									if(i < msgs.length) {
 										const addLine: string = msgs[i].trimEnd();
 										msg = msg + addLine;
-										output.appendLine("EOL: " + addLine.slice(-1));
+										output.appendLine(`EOL: ${addLine.slice(-1)}`);
 										if(addLine.slice(-1) === "\\") {
 											checkEOM(i+1);
 										}
 									}
 								};
 								if (idx > 0) { checkEOM(idx); }
-								output.appendLine("Check ended. Message: "+msg);
+								output.appendLine(`Check ended. Message: ${msg}`);
 								message.appendMarkdown(msg.slice(key.length));
 								message.appendMarkdown('<br>');
 							} catch(ex){}
@@ -134,6 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
 							fileName: document.fileName,
 							key: key,
 							position: position.line,
+							additionalPath: additionalPath,
 						}))}`
 					);
 					message.appendMarkdown('<hr>');
@@ -156,10 +160,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('tc.message.peek.source.location', (args) => {
 		output.appendLine('Peek source file');
-		output.appendLine('properties file: '+args.propertiesFileName);
-		output.appendLine('propertise pos: '+args.propertiesPosition);
-		output.appendLine('source file: '+args.sourceFileName);
-		output.appendLine('source pos: '+args.sourcePosition);
+		output.appendLine(`properties file: ${args.propertiesFileName}`);
+		output.appendLine(`propertise pos: ${args.propertiesPosition}`);
+		output.appendLine(`source file: ${args.sourceFileName}`);
+		output.appendLine(`source pos: ${args.sourcePosition}`);
 		
 		const originalUri: vscode.Uri = vscode.Uri.file(args.propertiesFileName);
 		const originalPos: vscode.Position = new vscode.Position(args.propertiesPosition,0);
@@ -182,9 +186,11 @@ export function activate(context: vscode.ExtensionContext) {
 		const originalPos: vscode.Position = new vscode.Position(args.position, 0);
 
 		let locs: vscode.Location[] = [];
-		vscode.workspace.fs.readDirectory(vscode.Uri.file(path.dirname(args.fileName))).then((res) => {
+		let targetDir = (args.additionalPath === null) ? path.dirname(args.fileName) : args.additionalPath;
+		output.appendLine(targetDir);
+		vscode.workspace.fs.readDirectory(vscode.Uri.file(targetDir)).then((res) => {
 			res.filter((value) => value[0].startsWith('LocalStrings')).map((value) => {
-				let fileName = path.dirname(args.fileName) + path.sep + value[0];
+				let fileName = `${targetDir}${path.sep}${value[0]}`;
 				fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
 					if (line.startsWith(args.key)) {
 						locs.push(new vscode.Location(
