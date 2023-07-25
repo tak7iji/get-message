@@ -56,11 +56,10 @@ export function activate(context: vscode.ExtensionContext) {
 									message.appendMarkdown('```\n');
 									const peekCommandUri = vscode.Uri.parse(
 										`command:tc.message.peek.source.location?${encodeURIComponent(JSON.stringify({
+											propertiesBaseName: baseName,
 											propertiesFileName: document.fileName,
 											propertiesPosition: position.line,
-											sourceFileName: fileName,
-											sourcePosition: lineno,
-											sourceLineLength: line.length
+											propertyKey: key
 										}))}`
 									);				
 									message.appendMarkdown(`[Peek...](${peekCommandUri})`);
@@ -160,24 +159,33 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('tc.message.peek.source.location', (args) => {
 		output.appendLine('Peek source file');
+		output.appendLine(`properties base: ${args.propertiesBaseName}`);
 		output.appendLine(`properties file: ${args.propertiesFileName}`);
 		output.appendLine(`propertise pos: ${args.propertiesPosition}`);
-		output.appendLine(`source file: ${args.sourceFileName}`);
-		output.appendLine(`source pos: ${args.sourcePosition}`);
+		output.appendLine(`property key: ${args.propertyKey}`);
 		
 		const originalUri: vscode.Uri = vscode.Uri.file(args.propertiesFileName);
 		const originalPos: vscode.Position = new vscode.Position(args.propertiesPosition,0);
 
-		let locs: vscode.Location[] = [
-			new vscode.Location(
-				vscode.Uri.file(args.sourceFileName),
-				new vscode.Range(
-					new vscode.Position(args.sourcePosition, 0),
-					new vscode.Position(args.sourcePosition, args.sourceLineLength-1)
-				)
-			)			
-		];
-		vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
+		let locs: vscode.Location[] = [];
+		vscode.workspace.fs.readDirectory(vscode.Uri.file(args.propertiesBaseName)).then((res) => {
+			res.filter((value) => value[0].endsWith('.java')).map((value) => {
+				const fileName = args.propertiesBaseName + value[0];
+				fs.readFileSync(fileName).toString().split('\n').forEach((line, lineno) => {
+					if (line.includes(args.propertyKey)) {
+						output.appendLine(`filename: ${fileName}, ${lineno}: ${line}`);
+						locs.push(new vscode.Location(
+							vscode.Uri.file(fileName),
+							new vscode.Range(
+								new vscode.Position(lineno, 0),
+								new vscode.Position(lineno, line.length)
+							)
+						));
+					}
+				});
+			});
+			vscode.commands.executeCommand('editor.action.peekLocations', originalUri, originalPos, locs, 'peek');
+		});	
 
 	}));
 
